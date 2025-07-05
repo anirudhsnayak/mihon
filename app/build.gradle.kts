@@ -121,7 +121,6 @@ android {
                 "META-INF/**/*.properties",
                 "META-INF/**/LICENSE.txt",
                 "META-INF/*.properties",
-                "META-INF/*.version",
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE",
                 "META-INF/NOTICE",
