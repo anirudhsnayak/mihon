@@ -57,15 +57,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/* TODO: */
-/*
-    Rewrite vertical list scroll to be in terms of items (even if it's not proportional)
- */
-
-/* TODO */
-/* Idea: treat the header/footer as their own blocks, and scale accordingly depending on if they are present or not */
-
-
 /**
  * Draws vertical fast scroller to a lazy list
  *
@@ -91,6 +82,7 @@ fun VerticalFastScroller(
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
             val showScroller = remember { layoutInfo.visibleItemsInfo.size < layoutInfo.totalItemsCount }
+            println("showScroller: " + showScroller)
             if (!showScroller) return@subcompose
 
             val thumbTopPadding = with(LocalDensity.current) { topContentPadding.toPx() }
@@ -117,7 +109,7 @@ fun VerticalFastScroller(
             val endSectionSize = layoutInfo.afterContentPadding
             val afterSectionCount = if(endSectionSize > 0) 1 else 0
             val itemMatchesSection = bottomItem.index != layoutInfo.totalItemsCount - 1 ||
-                    bottomItem.bottom >= contentHeight
+                    bottomItem.bottom >= contentHeight //TODO: rework to be something like heightPx. you also have to solve the sticky thing
             val bottomSectionIndex = if(itemMatchesSection) bottomItem.index else bottomItem.index + 1
             val bottomSectionSize = if(itemMatchesSection) bottomItem.size else endSectionSize
             val bottomSectionBottom = bottomItem.bottom + if(itemMatchesSection) 0 else endSectionSize
