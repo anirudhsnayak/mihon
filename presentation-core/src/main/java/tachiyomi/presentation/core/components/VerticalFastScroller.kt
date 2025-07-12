@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastLastOrNull
 import androidx.compose.ui.util.fastMaxBy
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -51,9 +51,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.sample
 import tachiyomi.presentation.core.components.Scroller.STICKY_HEADER_KEY_PREFIX
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -105,7 +103,9 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            val bottomItem = layoutInfo.visibleItemsInfo.last()
+            val bottomItem = layoutInfo.visibleItemsInfo
+                .fastLastOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
+            if(bottomItem == null) return@subcompose
             val endSectionSize = layoutInfo.afterContentPadding
             val afterSectionCount = if(endSectionSize > 0) 1 else 0
             val itemMatchesSection = bottomItem.index != layoutInfo.totalItemsCount - 1 ||
