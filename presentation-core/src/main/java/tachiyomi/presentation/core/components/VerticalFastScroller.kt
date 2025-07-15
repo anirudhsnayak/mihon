@@ -49,6 +49,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.sample
+import tachiyomi.core.common.util.lang.toLong
 import tachiyomi.presentation.core.components.Scroller.STICKY_HEADER_KEY_PREFIX
 import kotlin.math.abs
 import kotlin.math.floor
@@ -80,7 +81,6 @@ fun VerticalFastScroller(
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
             val showScroller = remember { layoutInfo.visibleItemsInfo.size < layoutInfo.totalItemsCount }
-            println("showScroller: " + showScroller)
             if (!showScroller) return@subcompose
 
             val thumbTopPadding = with(LocalDensity.current) { topContentPadding.toPx() }
@@ -103,37 +103,40 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            val bottomItem = layoutInfo.visibleItemsInfo
-                .fastLastOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
+            val bottomItem = layoutInfo.visibleItemsInfo.last()
+              //  .fastLastOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
             if(bottomItem == null) return@subcompose
-            val endSectionSize = layoutInfo.afterContentPadding
-            val afterSectionCount = if(endSectionSize > 0) 1 else 0
-            val itemMatchesSection = bottomItem.index != layoutInfo.totalItemsCount - 1 ||
-                    bottomItem.bottom >= contentHeight //TODO: rework to be something like heightPx. you also have to solve the sticky thing
-            val bottomSectionIndex = if(itemMatchesSection) bottomItem.index else bottomItem.index + 1
-            val bottomSectionSize = if(itemMatchesSection) bottomItem.size else endSectionSize
-            val bottomSectionBottom = bottomItem.bottom + if(itemMatchesSection) 0 else endSectionSize
+
+            val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
+            val endSections = (excessPadding > 0).toLong()
+            val itemCount = layoutInfo.totalItemsCount
+            val sectionCount = layoutInfo.totalItemsCount + endSections
+
+            //val endSectionSize = layoutInfo.afterContentPadding
+            val sectionIsEnd = (bottomItem.index == itemCount - 1) && (bottomItem.bottom < contentHeight)
+            val bottomSectionIndex = bottomItem.index + sectionIsEnd.toLong()
+            val bottomSectionSize = if(sectionIsEnd) excessPadding else bottomItem.size
+            val bottomSectionBottom = bottomItem.bottom + excessPadding * sectionIsEnd.toLong()
             val bottomHiddenProportion = (bottomSectionBottom - contentHeight).toFloat() / bottomSectionSize
-            val totalSections = afterSectionCount + layoutInfo.totalItemsCount
-            val remainingSections = bottomHiddenProportion + (totalSections - (bottomSectionIndex + 1))
-            val maxRemainingSections = remember { remainingSections } //initial
+            val remainingSections = bottomHiddenProportion + (sectionCount - (bottomSectionIndex + 1))
+            val maxRemainingSections = remember { remainingSections.coerceAtLeast(1f) } //initial
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
                 if (layoutInfo.totalItemsCount == 0 || !isThumbDragged) return@LaunchedEffect
                 val thumbProportion = (thumbOffsetY - thumbTopPadding) / trackHeightPx
                 val scrollRemainingSections = (1f - thumbProportion) * maxRemainingSections
-                val currentSection = totalSections - scrollRemainingSections
+                val currentSection = sectionCount - scrollRemainingSections
                 val scrollSectionIndex = floor(currentSection).roundToInt().coerceAtMost(layoutInfo.totalItemsCount)
                 val expectedScrollItem = layoutInfo.visibleItemsInfo.find { it.index == scrollSectionIndex } //nullable
-                val scrollSectionHeight = expectedScrollItem?.size ?: endSectionSize
+                val scrollSectionHeight = expectedScrollItem?.size ?: excessPadding
                 val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
                 val scrollSectionOffset = contentHeight - scrollRelativeOffset
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
                 val scrollItemOffset = scrollSectionOffset -
                         if(scrollSectionIndex >= layoutInfo.totalItemsCount) bottomItem.size else 0
-                println("scrollItemIndex: " + scrollItemIndex)
-                println("scrollItemOffset: " + scrollItemOffset.roundToInt())
+                println("currentSection: " + currentSection)
+                println("sectionProportion: " + (currentSection - scrollSectionIndex))
                 listState.scrollToItem(index = scrollItemIndex, scrollOffset = -scrollItemOffset.roundToInt())
                 scrolled.tryEmit(Unit)
             }
