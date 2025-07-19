@@ -104,22 +104,13 @@ fun VerticalFastScroller(
             val trackHeightPx = heightPx - thumbHeightPx
 
             val bottomItem = layoutInfo.visibleItemsInfo.last()
-              //  .fastLastOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
-              //  if(bottomItem == null) return@subcompose
-
-            val itemMargin = 16.dp.toPx()
 
             val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
-            val itemCount = layoutInfo.totalItemsCount
             val sectionCount = layoutInfo.totalItemsCount
 
-            //val endSectionSize = layoutInfo.afterContentPadding
-            val sectionIsEnd = (bottomItem.index == itemCount - 1) && (bottomItem.bottom < contentHeight)
-            val bottomSectionIndex = bottomItem.index + 0*sectionIsEnd.toLong()
-            val bottomSectionSize =  bottomItem.size
-            val bottomSectionBottom = bottomItem.bottom
-            val bottomHiddenProportion = (bottomSectionBottom - heightPx) / bottomSectionSize
-            println("bottomSectionBottom: " + bottomSectionBottom)
+            val bottomSectionIndex = bottomItem.index
+            val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
+            println("bottomSectionBottom: " + bottomItem.bottom)
             println("contentHeight: " + ( heightPx))
             println("bottomHiddenProportion: " + bottomHiddenProportion)
             val remainingSections = bottomHiddenProportion + (sectionCount - (bottomSectionIndex + 1))
@@ -137,7 +128,7 @@ fun VerticalFastScroller(
                 val scrollSectionBaseHeight = expectedScrollItem?.size ?: excessPadding
                 val scrollSectionHeight = scrollSectionBaseHeight
                 val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
-                val scrollSectionOffset = contentHeight - scrollRelativeOffset
+                val scrollSectionOffset = heightPx - scrollRelativeOffset
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
                 val scrollItemOffset = scrollSectionOffset -
                         if(scrollSectionIndex >= layoutInfo.totalItemsCount) bottomItem.size else 0
