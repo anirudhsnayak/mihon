@@ -105,20 +105,25 @@ fun VerticalFastScroller(
 
             val bottomItem = layoutInfo.visibleItemsInfo.last()
               //  .fastLastOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
-            if(bottomItem == null) return@subcompose
+              //  if(bottomItem == null) return@subcompose
+
+            val itemMargin = 16.dp.toPx()
 
             val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
-            val endSections = (excessPadding > 0).toLong()
             val itemCount = layoutInfo.totalItemsCount
-            val sectionCount = layoutInfo.totalItemsCount + endSections
+            val sectionCount = layoutInfo.totalItemsCount
 
             //val endSectionSize = layoutInfo.afterContentPadding
             val sectionIsEnd = (bottomItem.index == itemCount - 1) && (bottomItem.bottom < contentHeight)
-            val bottomSectionIndex = bottomItem.index + sectionIsEnd.toLong()
-            val bottomSectionSize = if(sectionIsEnd) excessPadding else bottomItem.size
-            val bottomSectionBottom = bottomItem.bottom + excessPadding * sectionIsEnd.toLong()
-            val bottomHiddenProportion = (bottomSectionBottom - contentHeight).toFloat() / bottomSectionSize
+            val bottomSectionIndex = bottomItem.index + 0*sectionIsEnd.toLong()
+            val bottomSectionSize =  bottomItem.size
+            val bottomSectionBottom = bottomItem.bottom
+            val bottomHiddenProportion = (bottomSectionBottom - heightPx) / bottomSectionSize
+            println("bottomSectionBottom: " + bottomSectionBottom)
+            println("contentHeight: " + ( heightPx))
+            println("bottomHiddenProportion: " + bottomHiddenProportion)
             val remainingSections = bottomHiddenProportion + (sectionCount - (bottomSectionIndex + 1))
+            println("remainingSections: " + remainingSections)
             val maxRemainingSections = remember { remainingSections.coerceAtLeast(1f) } //initial
 
             // When thumb dragged
@@ -129,7 +134,8 @@ fun VerticalFastScroller(
                 val currentSection = sectionCount - scrollRemainingSections
                 val scrollSectionIndex = floor(currentSection).roundToInt().coerceAtMost(layoutInfo.totalItemsCount)
                 val expectedScrollItem = layoutInfo.visibleItemsInfo.find { it.index == scrollSectionIndex } //nullable
-                val scrollSectionHeight = expectedScrollItem?.size ?: excessPadding
+                val scrollSectionBaseHeight = expectedScrollItem?.size ?: excessPadding
+                val scrollSectionHeight = scrollSectionBaseHeight
                 val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
                 val scrollSectionOffset = contentHeight - scrollRelativeOffset
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
