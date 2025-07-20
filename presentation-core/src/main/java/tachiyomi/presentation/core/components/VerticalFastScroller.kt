@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastLastOrNull
 import androidx.compose.ui.util.fastMaxBy
@@ -103,10 +104,12 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            val topItem = layoutInfo.visibleItemsInfo.first()
+            val topItemIndex = (layoutInfo.visibleItemsInfo.fastFirstOrNull { it.top > 0 }?.index ?: 1) - 1
+            val topItem = layoutInfo.visibleItemsInfo[topItemIndex]
             val bottomItem = layoutInfo.visibleItemsInfo.last()
             val sectionCount = layoutInfo.totalItemsCount
-            val topHiddenProportion = -1f * topItem.top / topItem.size
+            val topHiddenProportion = -1f * topItem.top  / topItem.size
+            println("topItemTop: " + topItem.top)
             val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (sectionCount - (bottomItem.index + 1))
