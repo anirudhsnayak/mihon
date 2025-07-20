@@ -103,19 +103,19 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
+            val topItem = layoutInfo.visibleItemsInfo.first()
             val bottomItem = layoutInfo.visibleItemsInfo.last()
-
-            val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
             val sectionCount = layoutInfo.totalItemsCount
-
-            val bottomSectionIndex = bottomItem.index
+            val topHiddenProportion = -1f * topItem.top / topItem.size
             val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
-            println("bottomSectionBottom: " + bottomItem.bottom)
-            println("contentHeight: " + ( heightPx))
-            println("bottomHiddenProportion: " + bottomHiddenProportion)
-            val remainingSections = bottomHiddenProportion + (sectionCount - (bottomSectionIndex + 1))
-            println("remainingSections: " + remainingSections)
-            val maxRemainingSections = remember { remainingSections.coerceAtLeast(1f) } //initial
+            val previousSections = topHiddenProportion + topItem.index
+            val remainingSections = bottomHiddenProportion + (sectionCount - (bottomItem.index + 1))
+            val maxRemainingSections = remember { (previousSections + remainingSections).coerceAtLeast(0.1f) } //initial
+
+            //TODO:
+            //  Add sticky functionality (maybe look at another branch)
+            //  Add memory of scroll state
+            //  Test this everywhere it's used
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
@@ -124,16 +124,14 @@ fun VerticalFastScroller(
                 val scrollRemainingSections = (1f - thumbProportion) * maxRemainingSections
                 val currentSection = sectionCount - scrollRemainingSections
                 val scrollSectionIndex = floor(currentSection).roundToInt().coerceAtMost(layoutInfo.totalItemsCount)
+                val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
                 val expectedScrollItem = layoutInfo.visibleItemsInfo.find { it.index == scrollSectionIndex } //nullable
-                val scrollSectionBaseHeight = expectedScrollItem?.size ?: excessPadding
-                val scrollSectionHeight = scrollSectionBaseHeight
+                val scrollSectionHeight = expectedScrollItem?.size ?: excessPadding
                 val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
                 val scrollSectionOffset = heightPx - scrollRelativeOffset
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
                 val scrollItemOffset = scrollSectionOffset -
-                        if(scrollSectionIndex >= layoutInfo.totalItemsCount) bottomItem.size else 0
-                println("currentSection: " + currentSection)
-                println("sectionProportion: " + (currentSection - scrollSectionIndex))
+                    if(scrollSectionIndex >= layoutInfo.totalItemsCount) bottomItem.size else 0
                 listState.scrollToItem(index = scrollItemIndex, scrollOffset = -scrollItemOffset.roundToInt())
                 scrolled.tryEmit(Unit)
             }
@@ -141,8 +139,10 @@ fun VerticalFastScroller(
             // When list scrolled
             LaunchedEffect(listState.firstVisibleItemScrollOffset) {
                 if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
-                val proportion =  1f - remainingSections / maxRemainingSections
+                val proportion = previousSections / (previousSections + remainingSections)
+                println("previousSections: " + previousSections)
                 println("remainingSections: " + remainingSections)
+                println("proportion: " + proportion)
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
                 scrolled.tryEmit(Unit)
             }
