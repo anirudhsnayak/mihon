@@ -108,9 +108,13 @@ fun VerticalFastScroller(
             if (layoutInfo.totalItemsCount == 0) return@subcompose
             val visibleItems = layoutInfo.visibleItemsInfo
             val topItem = visibleItems.fastFirstOrNull {
-                it.bottom > 0 && it.to
+                it.bottom > 0 &&
+               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.first()
-            val bottomItem = visibleItems.fastLastOrNull { it.top < thumbTopPadding + heightPx } ?: visibleItems.last()
+            val bottomItem = visibleItems.fastLastOrNull {
+                it.top < thumbTopPadding + heightPx &&
+               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
+            } ?: visibleItems.last()
             val topHiddenProportion = -1f * topItem.top / topItem.size
             val bottomHiddenProportion = (bottomItem.bottom - thumbTopPadding - heightPx) / bottomItem.size
             println("bottomHiddenProportion: " + bottomHiddenProportion)
