@@ -12,9 +12,11 @@ import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -105,6 +107,10 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
+            println("thumbTopPadding: " + thumbTopPadding)
+            println("thumbBottomPadding: " + thumbBottomPadding)
+            println("listState.layoutInfo.afterContentPadding: " + listState.layoutInfo.afterContentPadding)
+
             if (layoutInfo.totalItemsCount == 0) return@subcompose
             val visibleItems = layoutInfo.visibleItemsInfo
             val topItem = visibleItems.fastFirstOrNull {
@@ -112,12 +118,14 @@ fun VerticalFastScroller(
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.first()
             val bottomItem = visibleItems.fastLastOrNull {
-                it.top < thumbTopPadding + heightPx &&
+                it.top < heightPx &&
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.last()
             val topHiddenProportion = -1f * topItem.top / topItem.size
-            val bottomHiddenProportion = (bottomItem.bottom - thumbTopPadding - heightPx) / bottomItem.size
+            val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
             println("bottomHiddenProportion: " + bottomHiddenProportion)
+            println("bottomItemBottom: " + bottomItem.bottom)
+            println("heightPx: " + heightPx)
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
@@ -127,7 +135,8 @@ fun VerticalFastScroller(
             }
 
             //TODO:
-            //  Add sticky functionality (maybe look at another branch)
+            //  i think that different padding values between versions is skewing this -
+            //  reference previous branches to profile this
             //  Test this everywhere it's used
 
             // When thumb dragged
