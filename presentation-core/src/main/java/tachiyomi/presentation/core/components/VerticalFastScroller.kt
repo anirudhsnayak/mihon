@@ -131,16 +131,12 @@ fun VerticalFastScroller(
                 val scrollRemainingSections = (1f - thumbProportion) * maxRemainingSections
                 val currentSection = layoutInfo.totalItemsCount - scrollRemainingSections
                 val scrollSectionIndex = currentSection.toInt().coerceAtMost(layoutInfo.totalItemsCount)
-                val excessPadding =
-                    layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
                 val expectedScrollItem = visibleItems.find { it.index == scrollSectionIndex } ?: visibleItems.first()
-                val scrollSectionHeight = expectedScrollItem.size
-                val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
-                val scrollSectionOffset = heightPx - scrollRelativeOffset
+                val scrollRelativeOffset = expectedScrollItem.size * (currentSection - scrollSectionIndex)
+                val scrollSectionOffset = (scrollRelativeOffset - heightPx).roundToInt()
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
-                val scrollItemOffset = scrollSectionOffset -
-                    if(scrollSectionIndex >= layoutInfo.totalItemsCount) bottomItem.size else 0
-                listState.scrollToItem(index = scrollItemIndex, scrollOffset = -scrollItemOffset.roundToInt())
+                val scrollItemOffset = scrollSectionOffset + (scrollSectionIndex - scrollItemIndex) * bottomItem.size
+                listState.scrollToItem(index = scrollItemIndex, scrollOffset = scrollItemOffset)
                 scrolled.tryEmit(Unit)
             }
 
