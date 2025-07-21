@@ -105,12 +105,15 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
+            if (layoutInfo.totalItemsCount == 0) return@subcompose
             val visibleItems = layoutInfo.visibleItemsInfo
-            val topItemIndex = (visibleItems.fastFirstOrNull { it.top > 0 }?.index ?: 1) - 1
-            val topItem = visibleItems.getOrNull(topItemIndex) ?: visibleItems.first()
-            val bottomItem = visibleItems.fastLastOrNull {  }
+            val topItem = visibleItems.fastFirstOrNull {
+                it.bottom > 0 && it.to
+            } ?: visibleItems.first()
+            val bottomItem = visibleItems.fastLastOrNull { it.top < thumbTopPadding + heightPx } ?: visibleItems.last()
             val topHiddenProportion = -1f * topItem.top / topItem.size
-            val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
+            val bottomHiddenProportion = (bottomItem.bottom - thumbTopPadding - heightPx) / bottomItem.size
+            println("bottomHiddenProportion: " + bottomHiddenProportion)
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
@@ -309,7 +312,7 @@ fun VerticalGridFastScroller(
                 val avgSizePerRow = laidOutArea.toFloat() / laidOutRows
 
                 val scrollRatio = (thumbOffsetY - thumbTopPadding) / trackHeightPx
-                val scrollAmt = scrollRatio * (scrollRange.toFloat() - heightPx)
+                val scrollAmt = scrollRatio * (scrollRange.toFloat() - heightPx).coerceAtLeast(1f)
                 val rowNumber = (scrollAmt / avgSizePerRow).toInt()
                 val rowOffset = scrollAmt - rowNumber * avgSizePerRow
 
@@ -325,7 +328,8 @@ fun VerticalGridFastScroller(
                     LazyGridItemInfo doesn't give the accurate height of the object, so we clamp the proportion
                     at 1 to ensure that there are no issues due to this -- ideally we would correctly compute the value
                 */
-                val proportion = (scrollOffset.toFloat() / (scrollRange.toFloat() - heightPx)).coerceAtMost(1f)
+                val extraScrollRange = (scrollRange.toFloat() - heightPx).coerceAtLeast(1f)
+                val proportion = (scrollOffset.toFloat() / extraScrollRange).coerceAtMost(1f)
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
                 scrolled.tryEmit(Unit)
             }
