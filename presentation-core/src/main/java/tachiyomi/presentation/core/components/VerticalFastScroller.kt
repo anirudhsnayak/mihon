@@ -108,7 +108,7 @@ fun VerticalFastScroller(
             val visibleItems = layoutInfo.visibleItemsInfo
             val topItemIndex = (visibleItems.fastFirstOrNull { it.top > 0 }?.index ?: 1) - 1
             val topItem = visibleItems.getOrNull(topItemIndex) ?: visibleItems.first()
-            val bottomItem = visibleItems.last()
+            val bottomItem = visibleItems.fastLastOrNull {  }
             val topHiddenProportion = -1f * topItem.top / topItem.size
             val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
             val previousSections = topHiddenProportion + topItem.index
@@ -144,6 +144,7 @@ fun VerticalFastScroller(
             LaunchedEffect(listState.firstVisibleItemScrollOffset) {
                 if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
                 val proportion = 1f - remainingSections / maxRemainingSections
+                println("remainingSections: " + remainingSections)
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
                 scrolled.tryEmit(Unit)
             }
