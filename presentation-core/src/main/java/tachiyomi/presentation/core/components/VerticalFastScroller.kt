@@ -54,6 +54,7 @@ import tachiyomi.core.common.util.lang.toLong
 import tachiyomi.presentation.core.components.Scroller.STICKY_HEADER_KEY_PREFIX
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -104,32 +105,36 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            val topItemIndex = (layoutInfo.visibleItemsInfo.fastFirstOrNull { it.top > 0 }?.index ?: 1) - 1
-            val topItem = layoutInfo.visibleItemsInfo[topItemIndex]
-            val bottomItem = layoutInfo.visibleItemsInfo.last()
-            val sectionCount = layoutInfo.totalItemsCount
-            val topHiddenProportion = -1f * topItem.top  / topItem.size
-            println("topItemTop: " + topItem.top)
+            val visibleItems = layoutInfo.visibleItemsInfo
+            val topItemIndex = (visibleItems.fastFirstOrNull { it.top > 0 }?.index ?: 1) - 1
+            val topItem = visibleItems.getOrNull(topItemIndex) ?: visibleItems.first()
+            val bottomItem = visibleItems.last()
+            val topHiddenProportion = -1f * topItem.top / topItem.size
             val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
             val previousSections = topHiddenProportion + topItem.index
-            val remainingSections = bottomHiddenProportion + (sectionCount - (bottomItem.index + 1))
-            val maxRemainingSections = remember { (previousSections + remainingSections).coerceAtLeast(0.1f) } //initial
+            val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
+            val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
+            estimateUncertainty.floatValue = min(estimateUncertainty.floatValue, previousSections)
+            val maxRemainingSections = remember(estimateUncertainty.floatValue) {
+                (previousSections + remainingSections).coerceAtLeast(0.1f)
+            }
 
             //TODO:
             //  Add sticky functionality (maybe look at another branch)
-            //  Add memory of scroll state
             //  Test this everywhere it's used
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
                 if (layoutInfo.totalItemsCount == 0 || !isThumbDragged) return@LaunchedEffect
                 val thumbProportion = (thumbOffsetY - thumbTopPadding) / trackHeightPx
+
                 val scrollRemainingSections = (1f - thumbProportion) * maxRemainingSections
-                val currentSection = sectionCount - scrollRemainingSections
-                val scrollSectionIndex = floor(currentSection).roundToInt().coerceAtMost(layoutInfo.totalItemsCount)
-                val excessPadding = layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
-                val expectedScrollItem = layoutInfo.visibleItemsInfo.find { it.index == scrollSectionIndex } //nullable
-                val scrollSectionHeight = expectedScrollItem?.size ?: excessPadding
+                val currentSection = layoutInfo.totalItemsCount - scrollRemainingSections
+                val scrollSectionIndex = currentSection.toInt().coerceAtMost(layoutInfo.totalItemsCount)
+                val excessPadding =
+                    layoutInfo.beforeContentPadding + layoutInfo.afterContentPadding
+                val expectedScrollItem = visibleItems.find { it.index == scrollSectionIndex } ?: visibleItems.first()
+                val scrollSectionHeight = expectedScrollItem.size
                 val scrollRelativeOffset = scrollSectionHeight * (currentSection - scrollSectionIndex)
                 val scrollSectionOffset = heightPx - scrollRelativeOffset
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
@@ -142,10 +147,7 @@ fun VerticalFastScroller(
             // When list scrolled
             LaunchedEffect(listState.firstVisibleItemScrollOffset) {
                 if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
-                val proportion = previousSections / (previousSections + remainingSections)
-                println("previousSections: " + previousSections)
-                println("remainingSections: " + remainingSections)
-                println("proportion: " + proportion)
+                val proportion = 1f - remainingSections / maxRemainingSections
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
                 scrolled.tryEmit(Unit)
             }
