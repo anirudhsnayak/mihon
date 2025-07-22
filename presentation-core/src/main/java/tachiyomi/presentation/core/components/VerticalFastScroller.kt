@@ -107,25 +107,25 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            println("thumbTopPadding: " + thumbTopPadding)
-            println("thumbBottomPadding: " + thumbBottomPadding)
-            println("listState.layoutInfo.afterContentPadding: " + listState.layoutInfo.afterContentPadding)
-
             if (layoutInfo.totalItemsCount == 0) return@subcompose
+            println("TBP: " + thumbBottomPadding)
+            println("CH: " + contentHeight.toFloat())
+            println("ACP: " + listState.layoutInfo.afterContentPadding)
+            println("VEO: " + listState.layoutInfo.viewportEndOffset)
+            val scrollHeightPx = heightPx
+            println("heightPx: " + heightPx)
             val visibleItems = layoutInfo.visibleItemsInfo
             val topItem = visibleItems.fastFirstOrNull {
                 it.bottom > 0 &&
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.first()
             val bottomItem = visibleItems.fastLastOrNull {
-                it.top < heightPx &&
+                it.top < scrollHeightPx &&
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.last()
             val topHiddenProportion = -1f * topItem.top / topItem.size
-            val bottomHiddenProportion = (bottomItem.bottom - heightPx) / bottomItem.size
-            println("bottomHiddenProportion: " + bottomHiddenProportion)
-            println("bottomItemBottom: " + bottomItem.bottom)
-            println("heightPx: " + heightPx)
+            val bottomHiddenProportion = (bottomItem.bottom - scrollHeightPx) / bottomItem.size
+            println("bottomItemSize: " + bottomItem.size)
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
@@ -149,7 +149,7 @@ fun VerticalFastScroller(
                 val scrollSectionIndex = currentSection.toInt().coerceAtMost(layoutInfo.totalItemsCount)
                 val expectedScrollItem = visibleItems.find { it.index == scrollSectionIndex } ?: visibleItems.first()
                 val scrollRelativeOffset = expectedScrollItem.size * (currentSection - scrollSectionIndex)
-                val scrollSectionOffset = (scrollRelativeOffset - heightPx).roundToInt()
+                val scrollSectionOffset = (scrollRelativeOffset - scrollHeightPx).roundToInt()
                 val scrollItemIndex = scrollSectionIndex.coerceAtMost(layoutInfo.totalItemsCount - 1)
                 val scrollItemOffset = scrollSectionOffset + (scrollSectionIndex - scrollItemIndex) * bottomItem.size
                 listState.scrollToItem(index = scrollItemIndex, scrollOffset = scrollItemOffset)
