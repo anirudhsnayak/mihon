@@ -112,11 +112,13 @@ fun VerticalFastScroller(
                 listState.layoutInfo.beforeContentPadding -
                 listState.layoutInfo.afterContentPadding -
                 thumbBottomPadding
+            println("thumbBottomPadding: " + thumbBottomPadding)
+
             val visibleItems = layoutInfo.visibleItemsInfo
-            val topItem = visibleItems.fastFirstOrNull {
-                it.bottom > 0 &&
-               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
-            } ?: visibleItems.first()
+            val topItem = visibleItems.first() //visibleItems.fastFirstOrNull {
+//                it.bottom > 0 &&
+//               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
+//            } ?: visibleItems.first()
             val bottomItem = visibleItems.fastLastOrNull {
                 it.top < scrollHeightPx &&
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
@@ -130,10 +132,12 @@ fun VerticalFastScroller(
             val maxRemainingSections = remember(estimateUncertainty.floatValue) {
                 (previousSections + remainingSections).coerceAtLeast(0.1f)
             }
+            println("topItem.index: " + topItem.index )
+            println("previousSections: " + previousSections)
+            println("remainingSections: " + remainingSections)
 
             //TODO:
-            //  i think that different padding values between versions is skewing this -
-            //  reference previous branches to profile this
+            // BRUHH make sure you don't get the NaN thing for the scroll
             //  Test this everywhere it's used
 
             // When thumb dragged
