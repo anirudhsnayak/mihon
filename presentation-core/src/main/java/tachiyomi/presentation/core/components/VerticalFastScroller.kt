@@ -108,12 +108,10 @@ fun VerticalFastScroller(
             val trackHeightPx = heightPx - thumbHeightPx
 
             if (layoutInfo.totalItemsCount == 0) return@subcompose
-            println("TBP: " + thumbBottomPadding)
-            println("CH: " + contentHeight.toFloat())
-            println("ACP: " + listState.layoutInfo.afterContentPadding)
-            println("VEO: " + listState.layoutInfo.viewportEndOffset)
-            val scrollHeightPx = heightPx
-            println("heightPx: " + heightPx)
+            val scrollHeightPx = contentHeight.toFloat() -
+                listState.layoutInfo.beforeContentPadding -
+                listState.layoutInfo.afterContentPadding -
+                thumbBottomPadding
             val visibleItems = layoutInfo.visibleItemsInfo
             val topItem = visibleItems.fastFirstOrNull {
                 it.bottom > 0 &&
@@ -125,7 +123,6 @@ fun VerticalFastScroller(
             } ?: visibleItems.last()
             val topHiddenProportion = -1f * topItem.top / topItem.size
             val bottomHiddenProportion = (bottomItem.bottom - scrollHeightPx) / bottomItem.size
-            println("bottomItemSize: " + bottomItem.size)
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
@@ -160,7 +157,6 @@ fun VerticalFastScroller(
             LaunchedEffect(listState.firstVisibleItemScrollOffset) {
                 if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
                 val proportion = 1f - remainingSections / maxRemainingSections
-                println("remainingSections: " + remainingSections)
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
                 scrolled.tryEmit(Unit)
             }
