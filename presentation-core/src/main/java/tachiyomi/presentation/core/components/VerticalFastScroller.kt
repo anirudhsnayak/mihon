@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -107,24 +108,23 @@ fun VerticalFastScroller(
             val thumbHeightPx = with(LocalDensity.current) { ThumbLength.toPx() }
             val trackHeightPx = heightPx - thumbHeightPx
 
-            if (layoutInfo.totalItemsCount == 0) return@subcompose
             val scrollHeightPx = contentHeight.toFloat() -
                 listState.layoutInfo.beforeContentPadding -
                 listState.layoutInfo.afterContentPadding -
                 thumbBottomPadding
-            println("thumbBottomPadding: " + thumbBottomPadding)
 
             val visibleItems = layoutInfo.visibleItemsInfo
-            val topItem = visibleItems.first() //visibleItems.fastFirstOrNull {
-//                it.bottom > 0 &&
-//               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
-//            } ?: visibleItems.first()
+            val topItem = visibleItems.fastFirstOrNull {
+                it.bottom >= 0 &&
+               (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
+            } ?: visibleItems.first()
             val bottomItem = visibleItems.fastLastOrNull {
-                it.top < scrollHeightPx &&
+                it.top <= scrollHeightPx &&
                (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true
             } ?: visibleItems.last()
-            val topHiddenProportion = -1f * topItem.top / topItem.size
-            val bottomHiddenProportion = (bottomItem.bottom - scrollHeightPx) / bottomItem.size
+
+            val topHiddenProportion = -1f * topItem.top / topItem.size.coerceAtLeast(1)
+            val bottomHiddenProportion = (bottomItem.bottom - scrollHeightPx) / bottomItem.size.coerceAtLeast(1)
             val previousSections = topHiddenProportion + topItem.index
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val estimateUncertainty = remember { mutableFloatStateOf(previousSections) }
@@ -132,13 +132,6 @@ fun VerticalFastScroller(
             val maxRemainingSections = remember(estimateUncertainty.floatValue) {
                 (previousSections + remainingSections).coerceAtLeast(0.1f)
             }
-            println("topItem.index: " + topItem.index )
-            println("previousSections: " + previousSections)
-            println("remainingSections: " + remainingSections)
-
-            //TODO:
-            // BRUHH make sure you don't get the NaN thing for the scroll
-            //  Test this everywhere it's used
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
