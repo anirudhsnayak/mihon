@@ -325,7 +325,7 @@ fun VerticalGridFastScroller(
                 if (state.layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
                 val scrollOffset = computeGridScrollOffset(state = state, columnCount = columnCount)
                 /*
-                    LazyGridItemInfo doesn't give the accurate height of the object, so we clamp the proportion
+                    LazyGridItemInfo doesn't always give the accurate height of the object, so we clamp the proportion
                     at 1 to ensure that there are no issues due to this -- ideally we would correctly compute the value
                 */
                 val extraScrollRange = (scrollRange.toFloat() - heightPx).coerceAtLeast(1f)
