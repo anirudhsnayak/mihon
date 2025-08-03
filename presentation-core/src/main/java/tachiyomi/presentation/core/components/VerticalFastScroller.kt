@@ -168,12 +168,10 @@ fun VerticalFastScroller(
                 scrolled.tryEmit(Unit)
             }
 
-            // When list scrolled
-            LaunchedEffect(listState.firstVisibleItemScrollOffset, maxRemainingSections) {
-                if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
+            if(layoutInfo.totalItemsCount != 0 && !isThumbDragged){
                 val proportion = 1f - remainingSections / maxRemainingSections
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
-                if (anyScrollInProgress) scrolled.tryEmit(Unit)
+                if(stableScrollInProgress) scrolled.tryEmit(Unit)
             }
 
             // Thumb alpha
@@ -459,7 +457,7 @@ private fun computeGridScrollRange(state: LazyGridState, columnCount: Int): Int 
     return (endSpacing + (laidOutArea.toFloat() / laidOutRows) * totalRows).roundToInt()
 }
 
-class MutableData<T>(var value: T)
+private class MutableData<T>(var value: T)
 
 object Scroller {
     const val STICKY_HEADER_KEY_PREFIX = "sticky:"
