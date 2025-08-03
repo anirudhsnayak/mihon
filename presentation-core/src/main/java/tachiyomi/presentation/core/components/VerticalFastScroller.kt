@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.sample
 import tachiyomi.presentation.core.components.Scroller.STICKY_HEADER_KEY_PREFIX
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -81,11 +82,14 @@ fun VerticalFastScroller(
         val scrollerConstraints = constraints.copy(minWidth = 0, minHeight = 0)
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
-            val updateShowScroller = remember { object{ var value = 0 } }
-            val showScroller = remember(layoutInfo.totalItemsCount, updateShowScroller.value){
+            val updateShowScroller = remember { MutableData(0) }
+            val showScroller = remember(updateShowScroller.value) {
                 layoutInfo.visibleItemsInfo.size < layoutInfo.totalItemsCount
             }
-            if (!showScroller) return@subcompose
+            if (!showScroller) {
+                updateShowScroller.value++
+                return@subcompose
+            }
 
             val thumbTopPadding = with(LocalDensity.current) { topContentPadding.toPx() }
             var thumbOffsetY by remember(thumbTopPadding) { mutableFloatStateOf(thumbTopPadding) }
@@ -99,7 +103,7 @@ fun VerticalFastScroller(
                 )
             }
 
-            val scrollStateTracker = remember{ object{ var value = listState.isScrollInProgress } }
+            val scrollStateTracker = remember { MutableData(listState.isScrollInProgress) }
             val stableScrollInProgress = scrollStateTracker.value || listState.isScrollInProgress
             scrollStateTracker.value = listState.isScrollInProgress
             val anyScrollInProgress = stableScrollInProgress || isThumbDragged
@@ -132,21 +136,21 @@ fun VerticalFastScroller(
             val remainingSections = bottomHiddenProportion + (layoutInfo.totalItemsCount - (bottomItem.index + 1))
             val scrollableSections = previousSections + remainingSections
 
-            val layoutChangeTracker = remember{ object{ var value = scrollableSections } }
+            val layoutChangeTracker = remember { MutableData(scrollableSections) }
             val layoutChanged = abs(layoutChangeTracker.value - scrollableSections) > 0.2
-            if(layoutChanged) updateShowScroller.value++
+            if (layoutChanged) updateShowScroller.value++
             layoutChangeTracker.value = scrollableSections
 
-            val estimateConfidence = remember{ object{ var value = remainingSections } }
-            if(!anyScrollInProgress && layoutChanged) estimateConfidence.value = remainingSections
-            val maxRemainingSections = remember(estimateConfidence.value){ scrollableSections }
+            val estimateConfidence = remember { MutableData(remainingSections) }
+            if (!anyScrollInProgress && layoutChanged) estimateConfidence.value = remainingSections
+            val maxRemainingSections = remember(estimateConfidence.value) { scrollableSections }
             estimateConfidence.value = max(estimateConfidence.value, remainingSections)
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
                 if (layoutInfo.totalItemsCount == 0 || !isThumbDragged) return@LaunchedEffect
                 val thumbProportion = (thumbOffsetY - thumbTopPadding) / trackHeightPx
-                if(thumbProportion <= 0.001f){
+                if (thumbProportion <= 0.001f) {
                     estimateConfidence.value = -1f
                     listState.scrollToItem(index = 0, scrollOffset = 0)
                     scrolled.tryEmit(Unit)
@@ -169,7 +173,7 @@ fun VerticalFastScroller(
                 if (layoutInfo.totalItemsCount == 0 || isThumbDragged) return@LaunchedEffect
                 val proportion = 1f - remainingSections / maxRemainingSections
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
-                scrolled.tryEmit(Unit)
+                if (anyScrollInProgress) scrolled.tryEmit(Unit)
             }
 
             // Thumb alpha
@@ -272,7 +276,7 @@ private fun rememberColumnWidthSums(
     VerticalGridFastScroller was written with a regularity assumption, so it is slightly inaccurate for layouts with
     varying row sizes.
  */
-//TODO: Ideally rewrite VerticalGridFastScroller to use similar logic as VerticalFastScroller
+// TODO: Ideally rewrite VerticalGridFastScroller to use similar logic as VerticalFastScroller
 @Composable
 fun VerticalGridFastScroller(
     state: LazyGridState,
@@ -455,10 +459,11 @@ private fun computeGridScrollRange(state: LazyGridState, columnCount: Int): Int 
     return (endSpacing + (laidOutArea.toFloat() / laidOutRows) * totalRows).roundToInt()
 }
 
+class MutableData<T>(var value: T)
+
 object Scroller {
     const val STICKY_HEADER_KEY_PREFIX = "sticky:"
 }
-
 private val ThumbLength = 48.dp
 private val ThumbThickness = 12.dp
 private val ThumbShape = RoundedCornerShape(ThumbThickness / 2)
