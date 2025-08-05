@@ -74,7 +74,6 @@ fun VerticalFastScroller(
     content: @Composable () -> Unit,
 ) {
     SubcomposeLayout(modifier = modifier) { constraints ->
-
         val contentPlaceable = subcompose("content", content).map { it.measure(constraints) }
         val contentHeight = contentPlaceable.fastMaxBy { it.height }?.height ?: 0
         val contentWidth = contentPlaceable.fastMaxBy { it.width }?.width ?: 0
@@ -83,14 +82,6 @@ fun VerticalFastScroller(
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
             if(layoutInfo.totalItemsCount == 0) return@subcompose
-            val updateShowScroller = remember { MutableData(0) }
-            val showScroller = remember(updateShowScroller.value) {
-                layoutInfo.visibleItemsInfo.size < layoutInfo.totalItemsCount
-            }
-            if (!showScroller) {
-                updateShowScroller.value++
-                return@subcompose
-            }
 
             val thumbTopPadding = with(LocalDensity.current) { topContentPadding.toPx() }
             var thumbOffsetY by remember(thumbTopPadding) { mutableFloatStateOf(thumbTopPadding) }
@@ -139,13 +130,14 @@ fun VerticalFastScroller(
 
             val layoutChangeTracker = remember { MutableData(scrollableSections) }
             val layoutChanged = !anyScrollInProgress && abs(layoutChangeTracker.value - scrollableSections) > 0.1
-            if (layoutChanged) updateShowScroller.value++
             layoutChangeTracker.value = scrollableSections
 
             val estimateConfidence = remember { MutableData(remainingSections) }
             if (layoutChanged) estimateConfidence.value = remainingSections
             val maxRemainingSections = remember(estimateConfidence.value) { scrollableSections }
             estimateConfidence.value = max(estimateConfidence.value, remainingSections)
+
+            if (maxRemainingSections < 0.5) return@subcompose
 
             // When thumb dragged
             LaunchedEffect(thumbOffsetY) {
