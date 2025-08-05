@@ -51,7 +51,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.sample
 import tachiyomi.presentation.core.components.Scroller.STICKY_HEADER_KEY_PREFIX
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -81,7 +80,7 @@ fun VerticalFastScroller(
         val scrollerConstraints = constraints.copy(minWidth = 0, minHeight = 0)
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
-            if(layoutInfo.totalItemsCount == 0) return@subcompose
+            if (layoutInfo.totalItemsCount == 0) return@subcompose
 
             val thumbTopPadding = with(LocalDensity.current) { topContentPadding.toPx() }
             var thumbOffsetY by remember(thumbTopPadding) { mutableFloatStateOf(thumbTopPadding) }
@@ -161,10 +160,10 @@ fun VerticalFastScroller(
                 scrolled.tryEmit(Unit)
             }
 
-            if(layoutInfo.totalItemsCount != 0 && !isThumbDragged){
+            if (layoutInfo.totalItemsCount != 0 && !isThumbDragged) {
                 val proportion = 1f - remainingSections / maxRemainingSections
                 thumbOffsetY = trackHeightPx * proportion + thumbTopPadding
-                if(stableScrollInProgress) scrolled.tryEmit(Unit)
+                if (stableScrollInProgress) scrolled.tryEmit(Unit)
             }
 
             // Thumb alpha
