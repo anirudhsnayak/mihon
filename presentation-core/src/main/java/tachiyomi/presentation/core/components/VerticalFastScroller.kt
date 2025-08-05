@@ -82,6 +82,7 @@ fun VerticalFastScroller(
         val scrollerConstraints = constraints.copy(minWidth = 0, minHeight = 0)
         val scrollerPlaceable = subcompose("scroller") {
             val layoutInfo = listState.layoutInfo
+            if(layoutInfo.totalItemsCount == 0) return@subcompose
             val updateShowScroller = remember { MutableData(0) }
             val showScroller = remember(updateShowScroller.value) {
                 layoutInfo.visibleItemsInfo.size < layoutInfo.totalItemsCount
@@ -137,8 +138,7 @@ fun VerticalFastScroller(
             val scrollableSections = previousSections + remainingSections
 
             val layoutChangeTracker = remember { MutableData(scrollableSections) }
-            val layoutChanged = !anyScrollInProgress && abs(layoutChangeTracker.value - scrollableSections) > 0.2
-            if(layoutChanged) println("layout changed")
+            val layoutChanged = !anyScrollInProgress && abs(layoutChangeTracker.value - scrollableSections) > 0.1
             if (layoutChanged) updateShowScroller.value++
             layoutChangeTracker.value = scrollableSections
 
